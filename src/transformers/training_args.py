@@ -703,6 +703,9 @@ class TrainingArguments:
                 - min_num_params (`int`, *optional*, defaults to `0`):
                     Minimum number of parameters per module for size-based auto-wrapping (used with
                     `auto_wrap_policy="SIZE_BASED_WRAP"`).
+                - ignored_modules (`str`, *optional*):
+                    Regex of module names to leave out of sharding (fullmatch on the qualified name), e.g.
+                    `"lm_head"`. Passed to accelerate's `FullyShardedDataParallelPlugin`.
                 - xla (`bool`, *optional*, defaults to `False`):
                     Whether to use PyTorch/XLA Fully Sharded Data Parallel Training. Experimental.
                 - xla_fsdp_settings (`dict`, *optional*):
@@ -2804,6 +2807,9 @@ class TrainingArguments:
         os.environ["FSDP_CPU_RAM_EFFICIENT_LOADING"] = cpu_ram_efficient_loading
 
         fsdp_plugin_args["state_dict_type"] = self.fsdp_config.get("state_dict_type", "FULL_STATE_DICT")
+
+        if self.fsdp_config.get("ignored_modules") is not None:
+            fsdp_plugin_args["ignored_modules"] = self.fsdp_config["ignored_modules"]
 
         if "activation_checkpointing" in self.fsdp_config:
             fsdp_plugin_args["activation_checkpointing"] = str_to_bool(

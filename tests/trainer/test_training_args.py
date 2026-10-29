@@ -371,6 +371,15 @@ class TestTrainingArguments(unittest.TestCase):
         args = TrainingArguments(output_dir="tmp", include_num_input_tokens_seen=False, report_to=None)
         self.assertEqual(args.include_num_input_tokens_seen, "no")
 
+    def test_fsdp_config_ignored_modules(self):
+        """`ignored_modules` in `fsdp_config` reaches the accelerate FSDP plugin args."""
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            args = TrainingArguments(output_dir=tmp_dir, fsdp=True, fsdp_config={"ignored_modules": "lm_head"})
+            self.assertEqual(args.fsdp_plugin_args["ignored_modules"], "lm_head")
+
+            args = TrainingArguments(output_dir=tmp_dir, fsdp=True)
+            self.assertNotIn("ignored_modules", args.fsdp_plugin_args)
+
     def test_dict_field_parsing(self):
         """Test that JSON string dict fields are parsed into dicts."""
         args = TrainingArguments(output_dir="tmp", lr_scheduler_kwargs='{"factor": 0.5}', report_to=None)
