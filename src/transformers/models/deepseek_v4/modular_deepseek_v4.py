@@ -16,6 +16,7 @@ from collections.abc import Callable
 import torch
 import torch.nn.functional as F
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 from ... import initialization as init
 from ...activations import ACT2FN
@@ -848,6 +849,13 @@ class DeepseekV4HyperConnection(nn.Module):
         self.scale = nn.Parameter(torch.empty(3))
 
     def forward(self, hidden_streams: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+        # The mapping keeps fp32 copies of the flattened streams for its backward (~4 x hc_mult x hidden_size bytes a
+        # token, twice per layer). In training, recompute it instead: only `hidden_streams` is saved.
+        if self.training and torch.is_grad_enabled():
+            return checkpoint(self._mapping, hidden_streams, use_reentrant=False)
+        return self._mapping(hidden_streams)
+
+    def _mapping(self, hidden_streams: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
         Computes the weights used to mix in the `hc_mult` streams with the input and output of the next layer, which can
         be an attention or a MLP layer. This is done through three weights:

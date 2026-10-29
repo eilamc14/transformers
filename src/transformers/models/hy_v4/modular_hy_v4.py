@@ -384,6 +384,9 @@ class HYV4HyperConnection(DeepseekV4HyperConnection):
         self.hc_post_magnitude = config.hc_magnitude
         self.scale = nn.Parameter(torch.empty(2))
 
+    def _mapping(self, hidden_streams):
+        raise AttributeError("HY-V4 computes its own mapping in `forward`")
+
     def forward(self, hidden_streams: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
         """Independent HC implementation with forced fp32 application"""
         # Key difference is to force fp32 in any case
